@@ -8,18 +8,22 @@ TEXTO_CLASIFICACION = {
 
 
 def clasificar_exposicion(
-    especie,
+    especie=None,
     signos_rabia=None,
-    es_observable=None,
     tipo_agresion=None,
+    agresion=None,
     extension=None,
     localizacion=None,
     vacunado=None,
     tiene_dueno=None,
     estado_animal=None,
-    ubicacion_animal=None
+    ubicacion_animal=None,
 ):
     motivos = []
+
+    if tipo_agresion == 3:
+        motivos.append("Contacto de mucosa con saliva potencialmente infectada")
+        return _resultado(3, motivos)
 
     if especie == 3:
         motivos.append("El agresor es un mamifero distinto de perro/gato: no es posible mantenerlo en observacion")
@@ -34,15 +38,14 @@ def clasificar_exposicion(
         return _resultado(3, motivos)
 
     es_realmente_observable = (
-        es_observable == 1
-        and tiene_dueno == 1
+        tiene_dueno == 1
         and ubicacion_animal == 1
     )
 
     if not es_realmente_observable:
         motivos.append("El animal no puede mantenerse en observacion (sin dueno, perdido o desconocido)")
 
-        if tipo_agresion == 2:
+        if agresion == 2:
             motivos.append("Lesion multiple")
             return _resultado(3, motivos)
 
@@ -66,7 +69,7 @@ def clasificar_exposicion(
     else:
         motivos.append("El animal no esta vacunado")
 
-    if tipo_agresion == 2:
+    if agresion == 2:
         motivos.append("Lesion multiple")
         return _resultado(3, motivos)
 
@@ -78,7 +81,7 @@ def clasificar_exposicion(
         motivos.append("Localizacion en zona de alto riesgo")
         return _resultado(3, motivos)
 
-    if tipo_agresion == 1 and extension == 1:
+    if agresion == 1 and extension == 1:
         motivos.append("Agresion unica y herida superficial en zona de bajo riesgo")
         return _resultado(2, motivos)
 

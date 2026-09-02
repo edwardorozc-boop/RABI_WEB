@@ -1,15 +1,19 @@
 # flujo.py
-# Convierte el arbol de decision de preguntas.py (que usaba input()) en una
-# maquina de estados sin bloqueo: dado un diccionario de respuestas ya
-# recolectadas, calcula cual es la siguiente pregunta o, si ya hay
-# suficiente informacion, el resultado final.
-#
-# Esto permite que cada "paso" sea una peticion HTTP independiente desde
-# el navegador (la interfaz web), en vez de una llamada a input() en consola.
+# Maquina de estados: dado un diccionario de respuestas ya recolectadas,
+# calcula cual es la siguiente pregunta o, si ya hay suficiente
+# informacion, el resultado final.
 
 from clasificacion import clasificar_exposicion
 
 PREGUNTAS = {
+    "tipo_agresion": {
+        "texto": "Que tipo de agresion o exposicion ocurrio?",
+        "opciones": [
+            {"valor": 1, "texto": "Mordedura"},
+            {"valor": 2, "texto": "Arañazo o rasguño"},
+            {"valor": 3, "texto": "Contacto de mucosa con saliva infectada"},
+        ],
+    },
     "especie": {
         "texto": "Que animal agredio?",
         "opciones": [
@@ -19,7 +23,7 @@ PREGUNTAS = {
         ],
     },
     "estado_animal": {
-        "texto": "Estado del animal?",
+        "texto": "Cual es el estado actual del animal?",
         "opciones": [
             {"valor": 1, "texto": "Vivo"},
             {"valor": 2, "texto": "Muerto"},
@@ -47,36 +51,29 @@ PREGUNTAS = {
         "opciones": [
             {"valor": 1, "texto": "Si"},
             {"valor": 2, "texto": "No"},
+            {"valor": 3, "texto": "Desconocido"},
         ],
     },
     "ubicacion_animal": {
-        "texto": "Donde esta el animal?",
+        "texto": "Donde se encuentra actualmente el animal?",
         "opciones": [
             {"valor": 1, "texto": "Observable"},
             {"valor": 2, "texto": "Perdido"},
         ],
     },
-    "es_observable": {
-        "texto": "Es posible mantener al animal en observacion 10 dias?",
-        "opciones": [
-            {"valor": 1, "texto": "Si"},
-            {"valor": 2, "texto": "No"},
-            {"valor": 3, "texto": "Desconocido"},
-        ],
-    },
     "localizacion": {
-        "texto": "Donde fue la mordedura o lesion?",
+        "texto": "Donde fue la mordedura, arañazo o lesion?",
         "opciones": [
             {"valor": 1, "texto": "Cabeza, cara o cuello"},
             {"valor": 2, "texto": "Manos o dedos"},
             {"valor": 3, "texto": "Tronco"},
             {"valor": 4, "texto": "Miembros superiores"},
             {"valor": 5, "texto": "Miembros inferiores"},
-            {"valor": 6, "texto": "Pies, dedos"},
+            {"valor": 6, "texto": "Pies o dedos"},
             {"valor": 7, "texto": "Genitales"},
         ],
     },
-    "tipo_agresion": {
+    "agresion": {
         "texto": "La agresion fue unica o multiple?",
         "opciones": [
             {"valor": 1, "texto": "Unica"},
@@ -92,11 +89,9 @@ PREGUNTAS = {
     },
 }
 
-# Orden maximo posible, usado solo para calcular el progreso aproximado.
 ORDEN_MAXIMO = [
-    "especie", "estado_animal", "signos_rabia", "vacunado", "tiene_dueno",
-    "ubicacion_animal", "es_observable", "localizacion", "tipo_agresion",
-    "extension",
+    "tipo_agresion", "especie", "estado_animal", "signos_rabia", "vacunado",
+    "tiene_dueno", "ubicacion_animal", "localizacion", "agresion", "extension",
 ]
 
 
@@ -121,17 +116,22 @@ def _resultado(resultado, respuestas):
 
 
 def siguiente_paso(respuestas):
-    """Dado el dict de respuestas acumuladas hasta ahora, decide cual es
-    el siguiente paso: otra pregunta, o ya el resultado final.
-    Replica exactamente la logica secuencial que antes vivia en
-    preguntas.py / hacer_preguntas()."""
+    tipo_agresion = respuestas.get("tipo_agresion")
+    if tipo_agresion is None:
+        return _pregunta("tipo_agresion", respuestas)
+
+    if tipo_agresion == 3:
+        return _resultado(clasificar_exposicion(tipo_agresion=3), respuestas)
 
     especie = respuestas.get("especie")
     if especie is None:
         return _pregunta("especie", respuestas)
 
     if especie == 3:
-        return _resultado(clasificar_exposicion(especie=3), respuestas)
+        return _resultado(
+            clasificar_exposicion(especie=3, tipo_agresion=tipo_agresion),
+            respuestas,
+        )
 
     estado_animal = respuestas.get("estado_animal")
     if estado_animal is None:
@@ -147,6 +147,7 @@ def siguiente_paso(respuestas):
                 especie=especie,
                 estado_animal=estado_animal,
                 signos_rabia=signos_rabia,
+                tipo_agresion=tipo_agresion,
             ),
             respuestas,
         )
@@ -163,13 +164,7 @@ def siguiente_paso(respuestas):
     if ubicacion_animal is None:
         return _pregunta("ubicacion_animal", respuestas)
 
-    es_observable = respuestas.get("es_observable")
-    if es_observable is None:
-        return _pregunta("es_observable", respuestas)
-
-    observable_confirmado = (
-        es_observable == 1 and tiene_dueno == 1 and ubicacion_animal == 1
-    )
+    observable_confirmado = tiene_dueno == 1 and ubicacion_animal == 1
 
     if observable_confirmado:
         return _resultado(
@@ -177,10 +172,10 @@ def siguiente_paso(respuestas):
                 especie=especie,
                 estado_animal=estado_animal,
                 signos_rabia=signos_rabia,
-                es_observable=es_observable,
                 tiene_dueno=tiene_dueno,
                 ubicacion_animal=ubicacion_animal,
                 vacunado=vacunado,
+                tipo_agresion=tipo_agresion,
             ),
             respuestas,
         )
@@ -195,31 +190,31 @@ def siguiente_paso(respuestas):
                 especie=especie,
                 estado_animal=estado_animal,
                 signos_rabia=signos_rabia,
-                es_observable=es_observable,
                 tiene_dueno=tiene_dueno,
                 ubicacion_animal=ubicacion_animal,
                 localizacion=localizacion,
                 vacunado=vacunado,
+                tipo_agresion=tipo_agresion,
             ),
             respuestas,
         )
 
-    tipo_agresion = respuestas.get("tipo_agresion")
-    if tipo_agresion is None:
-        return _pregunta("tipo_agresion", respuestas)
+    agresion = respuestas.get("agresion")
+    if agresion is None:
+        return _pregunta("agresion", respuestas)
 
-    if tipo_agresion == 2:
+    if agresion == 2:
         return _resultado(
             clasificar_exposicion(
                 especie=especie,
                 estado_animal=estado_animal,
                 signos_rabia=signos_rabia,
-                es_observable=es_observable,
                 tiene_dueno=tiene_dueno,
                 ubicacion_animal=ubicacion_animal,
                 localizacion=localizacion,
-                tipo_agresion=tipo_agresion,
+                agresion=agresion,
                 vacunado=vacunado,
+                tipo_agresion=tipo_agresion,
             ),
             respuestas,
         )
@@ -232,12 +227,12 @@ def siguiente_paso(respuestas):
         especie=especie,
         estado_animal=estado_animal,
         signos_rabia=signos_rabia,
-        es_observable=es_observable,
         tiene_dueno=tiene_dueno,
         ubicacion_animal=ubicacion_animal,
         localizacion=localizacion,
-        tipo_agresion=tipo_agresion,
+        agresion=agresion,
         extension=extension,
         vacunado=vacunado,
+        tipo_agresion=tipo_agresion,
     )
     return _resultado(resultado, respuestas)

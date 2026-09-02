@@ -8,7 +8,7 @@ from tratamiento import obtener_tratamiento
 
 st.set_page_config(page_title="RABI · Clasificación de exposición rábica", page_icon="🐾", layout="centered")
 
-TOTAL_ESTIMADO = 10
+TOTAL_PREGUNTAS = len(ORDEN_MAXIMO)
 
 BADGE_POR_NIVEL = {
     1: {"bg": "#E1F5EE", "color": "#0F6E56", "icono": "✓"},
@@ -16,28 +16,57 @@ BADGE_POR_NIVEL = {
     3: {"bg": "#FCEBEB", "color": "#791F1F", "icono": "⛔"},
 }
 
+CATEGORIA_POR_PREGUNTA = {
+    "tipo_agresion": "Tipo de exposición",
+    "especie": "Animal agresor",
+    "estado_animal": "Animal agresor",
+    "signos_rabia": "Animal agresor",
+    "vacunado": "Seguimiento del animal",
+    "tiene_dueno": "Seguimiento del animal",
+    "ubicacion_animal": "Seguimiento del animal",
+    "localizacion": "Características de la lesión",
+    "agresion": "Características de la lesión",
+    "extension": "Características de la lesión",
+}
+
 LOGO_SVG = """
-<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#E1F5EE"
+<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#E1F5EE"
      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/>
   <path d="M9 12l2 2 4-4"/>
 </svg>
 """
 
-# ---------- CSS: tarjeta, botones estilo "opcion", tipografia ----------
+ICONO_CATEGORIA = """
+<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#0F6E56"
+     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/>
+</svg>
+"""
+
+# ---------- CSS: la app entera queda dentro de una tarjeta con sombra ----------
 st.markdown(
     """
     <style>
-    .block-container{ max-width: 460px; padding-top: 2.5rem; }
+    .block-container{
+        max-width: 460px;
+        padding: 30px 32px 34px;
+        margin-top: 2.5rem;
+        background: #FFFFFF;
+        border: 1px solid #E4E1D8;
+        border-radius: 18px;
+        box-shadow: 0 1px 2px rgba(27,43,39,.04), 0 12px 28px -16px rgba(27,43,39,.18);
+    }
 
     div[data-testid="stButton"] button[kind="secondary"]{
         width: 100%;
-        border: 1.5px solid #0F6E56;
-        color: #0F6E56;
-        border-radius: 10px;
-        padding: 10px 16px;
-        font-size: 15px;
-        background: #FFFFFF;
+        text-align: left;
+        border: 1.5px solid #E4E1D8;
+        color: #1B2B27;
+        border-radius: 11px;
+        padding: 13px 16px;
+        font-size: 14.5px;
+        background: #FCFBF8;
     }
     div[data-testid="stButton"] button[kind="secondary"]:hover{
         background: #E1F5EE;
@@ -45,21 +74,29 @@ st.markdown(
         border-color: #0F6E56;
     }
     div[data-testid="stButton"] button[kind="primary"]{
-        border-radius: 10px;
-        padding: 10px 16px;
+        border-radius: 11px;
+        padding: 12px 16px;
         font-size: 15px;
     }
 
-    .rabi-cabecera{ display:flex; align-items:center; gap:10px; margin-bottom: 6px; }
+    .rabi-cabecera{ display:flex; align-items:center; gap:10px; margin-bottom: 22px; }
     .rabi-logo{
-        width:34px; height:34px; border-radius:10px; background:#0F6E56;
+        width:36px; height:36px; border-radius:10px; background:#0F6E56;
         display:flex; align-items:center; justify-content:center; flex:none;
     }
     .rabi-titulo{ margin:0; font-size:15px; font-weight:600; color:#1B2B27; }
     .rabi-subtitulo{ margin:0; font-size:11px; color:#6B7A76; }
 
-    .rabi-eyebrow{ font-size:11px; color:#94A29D; margin: 0 0 14px; }
-    .rabi-pregunta{ font-size:17px; font-weight:600; color:#1B2B27; margin:0 0 14px; }
+    .rabi-progreso{ display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+    .rabi-progreso .pista{ height:6px; flex:1; background:#EFEEE7; border-radius:3px; overflow:hidden; }
+    .rabi-progreso .relleno{ height:100%; background:#0F6E56; border-radius:3px; }
+    .rabi-progreso .contador{ font-size:11px; color:#94A29D; white-space:nowrap; }
+
+    .rabi-categoria-fila{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+    .rabi-categoria{
+        font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#0F6E56;
+    }
+    .rabi-pregunta{ font-size:18px; font-weight:600; color:#1B2B27; margin:0 0 16px; line-height:1.35; }
 
     .rabi-badge{
         display:inline-flex; align-items:center; gap:7px;
@@ -105,6 +142,19 @@ def reiniciar_caso():
     st.session_state.codigo_caso = nuevo_codigo_caso()
 
 
+def barra_progreso(actual, total):
+    pct = min(100, round((actual - 1) / total * 100)) if total else 0
+    st.markdown(
+        f"""
+        <div class="rabi-progreso">
+            <div class="pista"><div class="relleno" style="width:{pct}%;"></div></div>
+            <span class="contador">{actual} / {total}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 iniciar_estado()
 
 # ---------- Barra lateral: caso e historial ----------
@@ -136,16 +186,18 @@ st.markdown(
 paso = siguiente_paso(st.session_state.respuestas)
 
 if paso["tipo"] == "pregunta":
-    progreso = min(1.0, len(st.session_state.respuestas) / (TOTAL_ESTIMADO + 1))
-    st.progress(progreso)
+    barra_progreso(paso["paso"], TOTAL_PREGUNTAS)
+
+    categoria = CATEGORIA_POR_PREGUNTA.get(paso["id"], "Pregunta")
     st.markdown(
-        f'<p class="rabi-eyebrow">Pregunta {paso["paso"]} de ~{paso["total_estimado"]}</p>',
+        f'<div class="rabi-categoria-fila">{ICONO_CATEGORIA}'
+        f'<span class="rabi-categoria">{categoria}</span></div>',
         unsafe_allow_html=True,
     )
     st.markdown(f'<p class="rabi-pregunta">{paso["texto"]}</p>', unsafe_allow_html=True)
 
     for opcion in paso["opciones"]:
-        if st.button(opcion["texto"], key=f"{paso['id']}_{opcion['valor']}"):
+        if st.button(f"○   {opcion['texto']}", key=f"{paso['id']}_{opcion['valor']}"):
             st.session_state.respuestas[paso["id"]] = opcion["valor"]
             st.session_state.historial.append({"etiqueta": paso["texto"], "texto": opcion["texto"]})
             st.rerun()
@@ -164,7 +216,7 @@ else:
     nivel = resultado["codigo"]
     estilo = BADGE_POR_NIVEL[nivel]
 
-    st.progress(1.0)
+    barra_progreso(TOTAL_PREGUNTAS + 1, TOTAL_PREGUNTAS)
 
     st.markdown(
         f'<span class="rabi-badge" style="background:{estilo["bg"]};color:{estilo["color"]};">'

@@ -98,6 +98,13 @@ st.markdown(
     }
     .rabi-pregunta{ font-size:18px; font-weight:600; color:#1B2B27; margin:0 0 16px; line-height:1.35; }
 
+    .rabi-eyebrow{
+        font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#0F6E56;
+        margin:0 0 10px;
+    }
+    .rabi-bienvenida-titulo{ font-size:20px; font-weight:600; color:#1B2B27; margin:0 0 16px; }
+    .rabi-bienvenida-texto{ font-size:14.5px; line-height:1.6; color:#6B7A76; margin:0 0 26px; }
+
     .rabi-badge{
         display:inline-flex; align-items:center; gap:7px;
         padding:6px 14px; border-radius:999px;
@@ -134,12 +141,15 @@ def iniciar_estado():
         st.session_state.historial = []
     if "codigo_caso" not in st.session_state:
         st.session_state.codigo_caso = nuevo_codigo_caso()
+    if "iniciado" not in st.session_state:
+        st.session_state.iniciado = False
 
 
 def reiniciar_caso():
     st.session_state.respuestas = {}
     st.session_state.historial = []
     st.session_state.codigo_caso = nuevo_codigo_caso()
+    st.session_state.iniciado = False
 
 
 def barra_progreso(actual, total):
@@ -168,7 +178,7 @@ with st.sidebar:
     else:
         st.caption("Aún no hay respuestas registradas.")
 
-# ---------- Cabecera ----------
+# ---------- Cabecera (siempre visible) ----------
 st.markdown(
     f"""
     <div class="rabi-cabecera">
@@ -181,6 +191,23 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+# ---------- Pantalla de bienvenida ----------
+if not st.session_state.iniciado:
+    st.markdown('<p class="rabi-eyebrow">Bienvenido</p>', unsafe_allow_html=True)
+    st.markdown('<p class="rabi-bienvenida-titulo">¡Hola! Soy RABI</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="rabi-bienvenida-texto">'
+        "Fui creado para ser un apoyo a la hora de clasificar correctamente "
+        "el tipo de exposición rábica, siguiendo el algoritmo del Instituto "
+        "Nacional de Salud (Colombia). Te voy a hacer 10 preguntas, paso a paso."
+        "</p>",
+        unsafe_allow_html=True,
+    )
+    if st.button("Comenzar", type="primary"):
+        st.session_state.iniciado = True
+        st.rerun()
+    st.stop()
 
 # ---------- Paso actual ----------
 paso = siguiente_paso(st.session_state.respuestas)

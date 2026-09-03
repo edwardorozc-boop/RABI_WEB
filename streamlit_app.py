@@ -75,11 +75,15 @@ st.markdown(
     }
     div[data-testid="stButton"] button[kind="primary"]{
         border-radius: 11px;
-        padding: 12px 16px;
+        padding: 12px 40px;
         font-size: 15px;
+        display: block;
+        margin: 0 auto;
+        width: auto;
     }
 
     .rabi-cabecera{ display:flex; align-items:center; gap:10px; margin-bottom: 22px; }
+    .rabi-cabecera--centrada{ flex-direction:column; justify-content:center; text-align:center; margin-bottom: 24px; }
     .rabi-logo{
         width:36px; height:36px; border-radius:10px; background:#0F6E56;
         display:flex; align-items:center; justify-content:center; flex:none;
@@ -100,10 +104,10 @@ st.markdown(
 
     .rabi-eyebrow{
         font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#0F6E56;
-        margin:0 0 10px;
+        margin:0 0 10px; text-align:center;
     }
-    .rabi-bienvenida-titulo{ font-size:20px; font-weight:600; color:#1B2B27; margin:0 0 16px; }
-    .rabi-bienvenida-texto{ font-size:14.5px; line-height:1.6; color:#6B7A76; margin:0 0 26px; }
+    .rabi-bienvenida-titulo{ font-size:20px; font-weight:600; color:#1B2B27; margin:0 0 16px; text-align:center; }
+    .rabi-bienvenida-texto{ font-size:14.5px; line-height:1.6; color:#6B7A76; margin:0 0 26px; text-align:center; }
 
     .rabi-badge{
         display:inline-flex; align-items:center; gap:7px;
@@ -165,6 +169,14 @@ def barra_progreso(actual, total):
     )
 
 
+CABECERA_HTML = f"""
+<div class="rabi-logo">{LOGO_SVG}</div>
+<div>
+    <p class="rabi-titulo">RABI</p>
+    <p class="rabi-subtitulo">Clasificación de exposición rábica</p>
+</div>
+"""
+
 iniciar_estado()
 
 # ---------- Barra lateral: caso e historial ----------
@@ -178,22 +190,9 @@ with st.sidebar:
     else:
         st.caption("Aún no hay respuestas registradas.")
 
-# ---------- Cabecera (siempre visible) ----------
-st.markdown(
-    f"""
-    <div class="rabi-cabecera">
-        <div class="rabi-logo">{LOGO_SVG}</div>
-        <div>
-            <p class="rabi-titulo">RABI</p>
-            <p class="rabi-subtitulo">Clasificación de exposición rábica</p>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
 # ---------- Pantalla de bienvenida ----------
 if not st.session_state.iniciado:
+    st.markdown(f'<div class="rabi-cabecera rabi-cabecera--centrada">{CABECERA_HTML}</div>', unsafe_allow_html=True)
     st.markdown('<p class="rabi-eyebrow">Bienvenido</p>', unsafe_allow_html=True)
     st.markdown('<p class="rabi-bienvenida-titulo">¡Hola! Soy RABI</p>', unsafe_allow_html=True)
     st.markdown(
@@ -208,6 +207,9 @@ if not st.session_state.iniciado:
         st.session_state.iniciado = True
         st.rerun()
     st.stop()
+
+# ---------- Cabecera (preguntas y resultado) ----------
+st.markdown(f'<div class="rabi-cabecera">{CABECERA_HTML}</div>', unsafe_allow_html=True)
 
 # ---------- Paso actual ----------
 paso = siguiente_paso(st.session_state.respuestas)

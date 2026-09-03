@@ -203,9 +203,11 @@ if not st.session_state.iniciado:
         "</p>",
         unsafe_allow_html=True,
     )
-    if st.button("Comenzar", type="primary"):
-        st.session_state.iniciado = True
-        st.rerun()
+    col_izq, col_centro, col_der = st.columns([1, 1.4, 1])
+    with col_centro:
+        if st.button("Comenzar", type="primary", use_container_width=True):
+            st.session_state.iniciado = True
+            st.rerun()
     st.stop()
 
 # ---------- Cabecera (preguntas y resultado) ----------
